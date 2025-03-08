@@ -15,18 +15,23 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const oauthSession = sessionStorage.getItem("oauthSession");
-
+    // Check for OAuth redirect params in URL hash
     const urlParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = urlParams.get("access_token");
 
     if (accessToken) {
-      sessionStorage.setItem("oauthSession", "true");
+      // Store token from OAuth redirect
       localStorage.setItem("token", accessToken);
-      navigate("/dashboard");
+      sessionStorage.setItem("oauthSession", "true");
+      // Clean up URL
+      window.history.replaceState({}, document.title, "/dashboard");
     }
 
+    // Check if authenticated through any method
+    const token = localStorage.getItem("token");
+    const oauthSession = sessionStorage.getItem("oauthSession");
+
+    // Redirect if no authentication exists
     if (!token && !oauthSession) {
       navigate("/");
     }

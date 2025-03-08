@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { APP_NAME } from "@/lib/constants";
-import { Film, Home, User, BarChart3, LogOut } from "lucide-react";
+import { Film, Home, User, BarChart3, LogOut, Compass } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -41,7 +41,13 @@ const Header = () => {
   };
 
   const handleSignOut = () => {
+    // Clear all authentication data
     localStorage.removeItem("token");
+    sessionStorage.removeItem("oauthSession");
+    
+    // Show toast notification
+    
+    // Redirect to home page
     navigate("/");
   };
 
@@ -65,6 +71,9 @@ const Header = () => {
         <nav className="hidden md:flex items-center gap-8">
           {isLoggedIn ? (
             <>
+              <NavLink to="/explore" icon={<Compass className="h-4 w-4" />}>
+                Explore
+              </NavLink>
               <NavLink to="/emotions" icon={<Home className="h-4 w-4" />}>
                 Home
               </NavLink>

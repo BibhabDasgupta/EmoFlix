@@ -11,6 +11,7 @@ import EmotionDetection from "./pages/EmotionDetection";
 import MovieRecommendations from "./pages/MovieRecommendations";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import Explore from "./pages/Explore";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/emotions" element={<EmotionDetection />} />
             <Route path="/recommendations/:emotionId" element={<MovieRecommendations />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/explore" element={<Explore />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
