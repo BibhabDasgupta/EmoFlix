@@ -9,6 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 const TMDB_API_KEY =
   "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlZTJhYTBjODE1NTQzNzkxNjIyMmIxZmYyOWE3ZGI4NiIsIm5iZiI6MTc0MDkyODAzOS41MTIsInN1YiI6IjY3YzQ3NDI3MTExY2RkNGVkOGI0YWUyMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.nmjaNuIPThzM0BrtWckOXBERsIELOoWImWjXHQ9mxqA";
 
+  const YOUTUBE_API_KEY = "AIzaSyARzpDJU617VFt8Kzqp9QLtxs1LxuDxFNE";
+
 const genreMappings: Record<string, string> = {
   "35": "happy", // Comedy
   "18": "sad", // Drama
@@ -79,6 +81,9 @@ const MovieRecommendation = () => {
   useEffect(() => {
     fetchMovies();
   }, []);
+
+
+
   const handleRefresh = () => {
     fetchMovies();
     toast({
@@ -176,10 +181,94 @@ const MovieRecommendation = () => {
     }
   };
 
+  const fetchMovieSongs = async (movieTitle: string) => {
+    try {
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(
+          `${movieTitle} soundtrack song`
+        )}&type=video&maxResults=10&key=${YOUTUBE_API_KEY}`
+      );
 
-const MovieCard = ({ movie }) => (
-    <Card
-      className="overflow-hidden rounded-lg shadow-lg transition-transform duration-300 h-full flex flex-col cursor-pointer">
+      const data = await response.json();
+      if (data.items?.length > 0) {
+        return data.items.map((item: any) => ({
+          title: item.snippet.title,
+          videoId: item.id.videoId,
+        }));
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error("Error fetching songs:", error);
+      return [];
+    }
+  };
+
+  const handleSongsClick = async (movieId: number, movieTitle: string) => {
+    const songs = await fetchMovieSongs(movieTitle);
+    if (songs.length === 0) {
+      alert("No songs found for this movie.");
+      return;
+    }
+
+    const songsPopup = window.open(
+      "",
+      "Songs",
+      "width=600,height=400,left=" + (window.innerWidth - 600) / 2 + ",top=" + (window.innerHeight - 400) / 2
+    );
+    songsPopup.document.write(`
+      <html>
+        <head>
+          <title>Songs for ${movieTitle}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; background: #000000; color: white; }
+            h2 { text-align: center; color: white; }
+            ul { list-style: none; padding: 0; }
+            li { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #1a1a1a; margin-bottom: 5px; border-radius: 5px; color: white; }
+            .play-btn { width: 0; height: 0; border-left: 15px solid #00cc00; border-top: 10px solid transparent; border-bottom: 10px solid transparent; cursor: pointer; background: none; }
+            .play-btn:hover { border-left-color: #00ff00; }
+          </style>
+        </head>
+        <body>
+          <h2>Songs for ${movieTitle}</h2>
+          <ul>
+            ${songs
+              .map(
+                (song: any) => `
+                  <li>
+                    ${song.title}
+                    <div class="play-btn" onclick="playSong('${song.videoId}')"></div>
+                  </li>
+                `
+              )
+              .join("")}
+          </ul>
+          <script>
+            function playSong(videoId) {
+              const songPopup = window.open("", "SongVideo", "width=1000,height=600,left=" + (window.innerWidth - 1200) / 2 + ",top=" + (window.innerHeight - 600) / 2);
+              songPopup.document.write(\`
+                <html>
+                  <body style="margin:0;padding:0;display:flex;justify-content:center;align-items:center;height:100vh;">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src="https://www.youtube.com/embed/\${videoId}?autoplay=1"
+                      frameborder="0"
+                      allow="autoplay; encrypted-media"
+                      allowfullscreen
+                    ></iframe>
+                  </body>
+                </html>
+              \`);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+  };
+
+  const MovieCard = ({ movie }) => (
+    <Card className="overflow-hidden rounded-lg shadow-lg transition-transform duration-300 h-full flex flex-col cursor-pointer">
       {movie.poster_path ? (
         <img
           src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
@@ -194,16 +283,23 @@ const MovieCard = ({ movie }) => (
         </div>
       )}
       <CardContent className="p-4 flex flex-col flex-1">
-        <h2 className="text-lg font-semibold mb-2">{movie.title}</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-lg font-semibold">{movie.title}</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            onClick={() => handleSongsClick(movie.id, movie.title)}
+          >
+            Songs
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground mb-4">
           {expanded[movie.id] || movie.overview.length <= 100
             ? movie.overview
             : `${movie.overview.substring(0, 100)}...`}
           {movie.overview.length > 100 && (
-            <button
-              onClick={() => toggleReadMore(movie.id)}
-              className="text-blue-500 ml-1"
-            >
+            <button onClick={() => toggleReadMore(movie.id)} className="text-blue-500 ml-1">
               {expanded[movie.id] ? "Read less" : "Read more"}
             </button>
           )}
@@ -213,9 +309,7 @@ const MovieCard = ({ movie }) => (
             ⭐ {movie.vote_average.toFixed(1)}
           </span>
           <span className="text-xs text-muted-foreground">
-            {movie.release_date
-              ? new Date(movie.release_date).getFullYear()
-              : "N/A"}
+            {movie.release_date ? new Date(movie.release_date).getFullYear() : "N/A"}
           </span>
         </div>
       </CardContent>
