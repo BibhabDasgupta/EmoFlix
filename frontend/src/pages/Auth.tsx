@@ -99,7 +99,7 @@ const Auth = () => {
 
   const handleGoogleAuth = () => {
     const popup = window.open(
-      "https://accounts.google.com/o/oauth2/auth?client_id=751047087683-kd88h5t67glb9c12b2g12svtr9a3a4co.apps.googleusercontent.com&redirect_uri=http://localhost:8080/emotions&response_type=token&scope=email%20profile",
+      "https://accounts.google.com/o/oauth2/auth?client_id="YOUR_ID"&redirect_uri=http://localhost:8080/emotions&response_type=token&scope=email%20profile",
       "_self"
     );
 
