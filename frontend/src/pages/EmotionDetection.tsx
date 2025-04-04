@@ -6,7 +6,7 @@ import { EMOTIONS } from "@/lib/constants";
 import { Camera, ChevronRight } from "lucide-react";
 
 const TMDB_API_KEY =
-  "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlZTJhYTBjODE1NTQzNzkxNjIyMmIxZmYyOWE3ZGI4NiIsIm5iZiI6MTc0MDkyODAzOS41MTIsInN1YiI6IjY3YzQ3NDI3MTExY2RkNGVkOGI0YWUyMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.nmjaNuIPThzM0BrtWckOXBERsIELOoWImWjXHQ9mxqA";
+  "YOUR_KEY";
 
 const EMOTION_GENRE_MAP: Record<string, number> = {
   happy: 35, // Comedy
