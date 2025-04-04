@@ -9,9 +9,25 @@ import { RecommendationHistory } from "@/lib/types";
 import { BarChart3, Calendar, Trash2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
+
+interface HistoryItem {
+  _id: string;
+  emotion: string;
+  movies: Array<{
+    id: number;
+    title: string;
+    poster_path?: string;
+    vote_average: number;
+    overview: string;
+    release_date: string;
+  }>;
+  date: string;
+}
+
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [history, setHistory] = useState<RecommendationHistory[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
@@ -34,27 +50,86 @@ const Dashboard = () => {
     // Redirect if no authentication exists
     if (!token && !oauthSession) {
       navigate("/");
+    }else {
+      fetchHistory();
     }
   }, [navigate]);
 
 
-  useEffect(() => {
-    // Simulate loading history
-    setIsLoading(true);
-    
-    setTimeout(() => {
-      setHistory(MOCK_HISTORY);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+    const fetchHistory = async () => {
+      setIsLoading(true);
+      try {
+        const userEmail = localStorage.getItem('userEmail');
+        const response = await fetch(`http://localhost:3000/api/auth/history?email=${userEmail}`);
+        
+        if (!response.ok) throw new Error('Failed to fetch history');
+        
+        const data = await response.json();
+        setHistory(data);
+        console.log(data);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+
+    const handleDeleteItem = async (id: string) => {
+      try {
+        const userEmail = localStorage.getItem('userEmail');
+        const response = await fetch(`http://localhost:3000/api/auth/history/${id}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: userEmail })
+        });
   
-  const handleClearHistory = () => {
-    setHistory([]);
-    
-    toast({
-      title: "History cleared",
-      description: "Your recommendation history has been cleared.",
-    });
+        if (!response.ok) throw new Error('Failed to delete history item');
+        
+        const updatedHistory = await response.json();
+        setHistory(updatedHistory);
+        
+        toast({
+          title: "Deleted",
+          description: "History item has been removed.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    };
+
+  const handleClearHistory = async () => {
+    try {
+      const userEmail = localStorage.getItem('userEmail');
+      const response = await fetch('http://localhost:3000/api/auth/history', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail })
+      });
+      
+      if (!response.ok) throw new Error('Failed to clear history');
+      
+      setHistory([]);
+      
+      toast({
+        title: "History cleared",
+        description: "Your recommendation history has been cleared.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -76,6 +151,7 @@ const Dashboard = () => {
                 variant="outline" 
                 className="gap-2" 
                 onClick={handleClearHistory}
+                disabled={isLoading}
               >
                 <Trash2 className="h-4 w-4" />
                 Clear history
@@ -108,7 +184,7 @@ const Dashboard = () => {
                   <p className="text-muted-foreground mb-6">
                     Your movie recommendation history will appear here once you start using the app.
                   </p>
-                  <Button className="gap-2" onClick={() => window.location.href = "/emotions"}>
+                  <Button className="gap-2" onClick={() => navigate("/emotions")}>
                     <Calendar className="h-4 w-4" />
                     Find movies
                   </Button>
@@ -116,7 +192,22 @@ const Dashboard = () => {
               ) : (
                 <div className="space-y-6">
                   {history.map((item) => (
-                    <HistoryItem key={item.id} history={item} />
+                    <div key={item._id} className="relative">
+                      <HistoryItem history={{
+                        _id: item._id,
+                        emotion: item.emotion,
+                        movies: item.movies,
+                        date: item.date
+                      }} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-4 right-12 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteItem(item._id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}

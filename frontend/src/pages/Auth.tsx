@@ -23,6 +23,7 @@ import { FaFacebook } from "react-icons/fa";
 const Auth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -52,6 +53,7 @@ const Auth = () => {
       if (!response.ok) throw new Error(data.message);
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("userEmail", formData.email);
       toast({
         title: "Success",
         description: "You have successfully logged in.",
@@ -78,9 +80,16 @@ const Auth = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
 
-      localStorage.setItem("token", data.token);
-      toast({ title: "Account created", description: "Welcome to EmoFlix!" });
-      navigate("/emotions");
+      // Clear password field after successful signup
+      setFormData({ ...formData, password: "" });
+      
+      toast({ 
+        title: "Account created", 
+        description: "Your account has been created successfully. Please log in." 
+      });
+      
+      // Switch to login tab after successful signup
+      setActiveTab("login");
     } catch (error) {
       toast({ title: "Error", description: error.message });
     } finally {
@@ -119,7 +128,12 @@ const Auth = () => {
               <CardDescription>Enter your details to continue</CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="login" className="w-full">
+              <Tabs 
+                value={activeTab} 
+                onValueChange={setActiveTab}
+                defaultValue="login" 
+                className="w-full"
+              >
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="login">Login</TabsTrigger>
                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -131,6 +145,7 @@ const Auth = () => {
                       name="email"
                       type="email"
                       placeholder="your@email.com"
+                      value={formData.email}
                       onChange={handleChange}
                       required
                     />
@@ -138,6 +153,7 @@ const Auth = () => {
                       name="password"
                       type="password"
                       placeholder="••••••••"
+                      value={formData.password}
                       onChange={handleChange}
                       required
                     />
@@ -146,8 +162,7 @@ const Auth = () => {
                       className="w-full"
                       disabled={isLoading}
                     >
-                      {" "}
-                      {isLoading ? "Logging in..." : "Log in"}{" "}
+                      {isLoading ? "Logging in..." : "Log in"}
                     </Button>
                   </form>
                 </TabsContent>
@@ -158,6 +173,7 @@ const Auth = () => {
                       name="name"
                       type="text"
                       placeholder="Full name"
+                      value={formData.name}
                       onChange={handleChange}
                       required
                     />
@@ -165,6 +181,7 @@ const Auth = () => {
                       name="email"
                       type="email"
                       placeholder="your@email.com"
+                      value={formData.email}
                       onChange={handleChange}
                       required
                     />
@@ -172,6 +189,7 @@ const Auth = () => {
                       name="password"
                       type="password"
                       placeholder="Create a password"
+                      value={formData.password}
                       onChange={handleChange}
                       required
                     />
@@ -180,10 +198,7 @@ const Auth = () => {
                       className="w-full"
                       disabled={isLoading}
                     >
-                      {" "}
-                      {isLoading
-                        ? "Creating account..."
-                        : "Create account"}{" "}
+                      {isLoading ? "Creating account..." : "Create account"}
                     </Button>
                   </form>
                 </TabsContent>

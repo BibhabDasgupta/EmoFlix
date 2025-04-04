@@ -1,11 +1,24 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+// models/user.js
 const userSchema = mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }, // Hashed password
+    password: { type: String, required: true },
+    history: [{
+      emotion: { type: String, required: true },
+      movies: [{
+        id: { type: Number, required: true },
+        title: { type: String, required: true },
+        poster_path: { type: String },
+        vote_average: { type: Number },
+        overview: { type: String },
+        release_date: { type: String }
+      }],
+      timestamp: { type: Date, default: Date.now }
+    }]
   },
   { timestamps: true }
 );

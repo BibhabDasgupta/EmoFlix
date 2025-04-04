@@ -31,10 +31,13 @@ export type Movie = {
   genres: string[];
   plot: string;
   rating: number;
+  poster_path?: string; // Optional, as some movies might not have a poster
+  release_date?: string; // Optional, as some movies might not have a release date
+  vote_average?: number;
 };
 
 export type RecommendationHistory = {
-  id: string;
+  _id: string;
   timestamp: string;
   emotion: Emotion;
   movies: Movie[];

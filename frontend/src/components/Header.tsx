@@ -44,9 +44,10 @@ const Header = () => {
     // Clear all authentication data
     localStorage.removeItem("token");
     sessionStorage.removeItem("oauthSession");
-    
+    // Add this to your logout function
+    localStorage.removeItem("userEmail");
     // Show toast notification
-    
+
     // Redirect to home page
     navigate("/");
   };
@@ -104,15 +105,19 @@ const Header = () => {
             </Link>
           )}
 
-          {/* <ThemeToggle /> */}
+          <ThemeToggle />
         </nav>
 
-        {/* <div className="flex md:hidden items-center gap-2">
+        <div className="flex md:hidden items-center gap-2">
           <ThemeToggle />
-          <Button variant="ghost" size="icon" className="text-[hsl(var(--header-foreground))]">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-[hsl(var(--header-foreground))]"
+          >
             <User className="h-5 w-5" />
           </Button>
-        </div> */}
+        </div>
       </div>
     </header>
   );

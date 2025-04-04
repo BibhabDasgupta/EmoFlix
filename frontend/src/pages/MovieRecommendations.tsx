@@ -1,127 +1,256 @@
-
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Header, Footer, MovieCard } from "@/components";
-import { EMOTIONS } from "@/lib/constants";
-import { MOCK_MOVIES } from "@/lib/mockData";
-import { Movie } from "@/lib/types";
-import { ArrowLeft, RefreshCcw, ThumbsUp, Bookmark } from "lucide-react";
+import { Header, Footer } from "@/components";
+import { ArrowLeft, RefreshCcw, Bookmark } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
 
-const MovieRecommendations = () => {
+const TMDB_API_KEY =
+  "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlZTJhYTBjODE1NTQzNzkxNjIyMmIxZmYyOWE3ZGI4NiIsIm5iZiI6MTc0MDkyODAzOS41MTIsInN1YiI6IjY3YzQ3NDI3MTExY2RkNGVkOGI0YWUyMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.nmjaNuIPThzM0BrtWckOXBERsIELOoWImWjXHQ9mxqA";
+
+const genreMappings: Record<string, string> = {
+  "35": "happy", // Comedy
+  "18": "sad", // Drama
+  "28": "angry", // Action
+  "12": "surprised", // Adventure
+  "878": "neutral", // Romance
+  "9648": "fearful", // Mystery
+  "27": "disgusted", // Horror
+};
+
+const MovieRecommendation = () => {
   const navigate = useNavigate();
-  const { emotionId } = useParams<{ emotionId: string }>();
-  const [movies, setMovies] = useState<Movie[]>([]);
+  const { emotionId } = useParams();
+  const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  const emotion = emotionId ? EMOTIONS[emotionId] : null;
+  const [error, setError] = useState(null);
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [clickedMovies, setClickedMovies] = useState<number[]>([]);
 
+  const emotion = genreMappings[emotionId || ""];
 
   useEffect(() => {
-    // Check for OAuth redirect params in URL hash
-    const urlParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = urlParams.get("access_token");
-
-    if (accessToken) {
-      // Store token from OAuth redirect
-      localStorage.setItem("token", accessToken);
-      sessionStorage.setItem("oauthSession", "true");
-      // Clean up URL
-      window.history.replaceState({}, document.title, "/recommendations");
+    if (!emotionId || !emotion) {
+      navigate("/");
+      return;
     }
 
-    // Check if authenticated through any method
     const token = localStorage.getItem("token");
     const oauthSession = sessionStorage.getItem("oauthSession");
 
-    // Redirect if no authentication exists
     if (!token && !oauthSession) {
       navigate("/");
+      return;
     }
-  }, [navigate]);
 
-  
-  useEffect(() => {
-    // Simulate loading
+    fetchMovies();
+  }, [emotionId, navigate]);
+
+  const fetchMovies = async () => {
     setIsLoading(true);
-    
-    setTimeout(() => {
-      if (emotionId && emotionId in MOCK_MOVIES) {
-        setMovies(MOCK_MOVIES[emotionId]);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `https://api.themoviedb.org/3/discover/movie?with_genres=${emotionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${TMDB_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+      const data = await response.json();
+      if (data.results?.length > 0) {
+        setMovies(data.results); // Limit to 5 movies
+      } else {
+        setError("No movies found for this emotion.");
       }
+    } catch (error) {
+      setError(`Failed to fetch movies: ${error.message}`);
+    } finally {
       setIsLoading(false);
-    }, 1500);
-  }, [emotionId]);
-  
-  const handleRefresh = () => {
-    setIsLoading(true);
-    
-    // Simulate refreshing recommendations
-    setTimeout(() => {
-      const availableEmotions = Object.keys(MOCK_MOVIES);
-      const randomEmotion = availableEmotions[Math.floor(Math.random() * availableEmotions.length)];
-      setMovies(MOCK_MOVIES[randomEmotion]);
-      setIsLoading(false);
-      
-      toast({
-        title: "Recommendations refreshed",
-        description: "Here are some new movie suggestions for you.",
-      });
-    }, 1500);
+    }
   };
-  
-  const handleSaveToHistory = () => {
+  useEffect(() => {
+    fetchMovies();
+  }, []);
+  const handleRefresh = () => {
+    fetchMovies();
     toast({
-      title: "Saved to history",
-      description: "These recommendations have been saved to your history.",
+      title: "Recommendations refreshed",
+      description: "Here are some new movie suggestions based on your mood.",
     });
   };
 
-  if (!emotion) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-grow flex items-center justify-center p-6">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Emotion not found</h1>
-            <Link to="/emotions">
-              <Button>Return to emotion selection</Button>
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  const handleSaveToHistory = async () => {
+    if (!emotion || clickedMovies.length === 0) return;
+    
+    try {
+      const userEmail = localStorage.getItem('userEmail');
+      const selectedMovies = movies.filter(movie => clickedMovies.includes(movie.id));
+      
+      const response = await fetch('http://localhost:3000/api/auth/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userEmail,
+          history: {
+            emotion,
+            movies: selectedMovies.map(movie => ({
+              id: movie.id,
+              title: movie.title,
+              poster_path: movie.poster_path,
+              vote_average: movie.vote_average,
+              overview: movie.overview,
+              release_date: movie.release_date
+            }))
+          }
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to save history');
+      
+      toast({
+        title: "Saved to history",
+        description: "These recommendations have been saved to your history.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleReadMore = (id: number) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+  const handleMovieClick = async (movieId: number) => {
+    if (!clickedMovies.includes(movieId)) {
+      
+      setClickedMovies([...clickedMovies, movieId]);
+    }
+    try {
+      const response = await fetch(
+        `https://api.themoviedb.org/3/movie/${movieId}/videos`,
+        {
+          headers: {
+            Authorization: `Bearer ${TMDB_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+      const trailer = data.results.find(
+        (video: any) => video.type === "Trailer" && video.site === "YouTube"
+      );
+
+      if (trailer) {
+        const trailerPopup = window.open("", "Trailer", "width=1000,height=600,left=" + (window.innerWidth - 1200) / 2 + ",top=" + (window.innerHeight - 600) / 2);
+        trailerPopup.document.write(`
+          <html>
+            <body style="margin:0;padding:0;display:flex;justify-content:center;align-items:center;height:100vh;">
+              <iframe
+                width="100%"
+                height="100%"
+                src="https://www.youtube.com/embed/${trailer.key}?autoplay=1"
+                frameborder="0"
+                allow="autoplay; encrypted-media"
+                allowfullscreen
+              ></iframe>
+            </body>
+          </html>
+        `);
+      } else {
+        alert("Trailer not available");
+      }
+    } catch {
+      alert("Failed to fetch trailer");
+    }
+  };
+
+
+const MovieCard = ({ movie }) => (
+    <Card
+      className="overflow-hidden rounded-lg shadow-lg transition-transform duration-300 h-full flex flex-col cursor-pointer">
+      {movie.poster_path ? (
+        <img
+          src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+          alt={movie.title}
+          className="w-full h-80 object-cover"
+          loading="lazy"
+          onClick={() => handleMovieClick(movie.id)}
+        />
+      ) : (
+        <div className="w-full h-80 bg-muted flex items-center justify-center">
+          <span className="text-muted-foreground">No image available</span>
+        </div>
+      )}
+      <CardContent className="p-4 flex flex-col flex-1">
+        <h2 className="text-lg font-semibold mb-2">{movie.title}</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          {expanded[movie.id] || movie.overview.length <= 100
+            ? movie.overview
+            : `${movie.overview.substring(0, 100)}...`}
+          {movie.overview.length > 100 && (
+            <button
+              onClick={() => toggleReadMore(movie.id)}
+              className="text-blue-500 ml-1"
+            >
+              {expanded[movie.id] ? "Read less" : "Read more"}
+            </button>
+          )}
+        </p>
+        <div className="mt-auto flex justify-between items-center">
+          <span className="text-sm text-yellow-500 font-medium">
+            ⭐ {movie.vote_average.toFixed(1)}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {movie.release_date
+              ? new Date(movie.release_date).getFullYear()
+              : "N/A"}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  
+
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-12 animate-slide-down">
             <div>
-              <Link 
-                to="/emotions" 
+              <Link
+                to="/emotions"
                 className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
               >
                 <ArrowLeft className="mr-1 h-4 w-4" />
-                Back to emotions
+                Back to Emotion detection
               </Link>
               <h1 className="text-3xl md:text-4xl font-bold">
-                Movies for when you're feeling <span className={`bg-gradient-to-r ${emotion.color} bg-clip-text text-transparent`}>{emotion.label}</span>
+              {`Movies for when you're feeling ${emotion}`}
               </h1>
               <p className="text-muted-foreground mt-2">
-                Here are some movies that match your current mood.
+                Discover great movies from our collection.
               </p>
             </div>
-            
+
             <div className="flex items-center gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="gap-2"
                 onClick={handleRefresh}
                 disabled={isLoading}
@@ -129,25 +258,27 @@ const MovieRecommendations = () => {
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
               </Button>
-              <Button
-                className="gap-2"
-                onClick={handleSaveToHistory}
-              >
+              <Button className="gap-2" onClick={handleSaveToHistory}>
                 <Bookmark className="h-4 w-4" />
                 Save to history
               </Button>
             </div>
           </div>
-          
+
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 animate-pulse">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="bg-muted rounded-lg aspect-[2/3]"></div>
               ))}
             </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-400 mb-4">{error}</p>
+              <Button onClick={handleRefresh}>Try again</Button>
+            </div>
           ) : movies.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">No movies found for this emotion.</p>
+              <p className="text-muted-foreground">No movies found.</p>
               <Button onClick={handleRefresh} className="mt-4">
                 Try again
               </Button>
@@ -159,37 +290,14 @@ const MovieRecommendations = () => {
               ))}
             </div>
           )}
-          
-          {!isLoading && movies.length > 0 && (
-            <div className="mt-12 text-center animate-fade-in">
-              <p className="text-muted-foreground mb-4">
-                How do you feel about these recommendations?
-              </p>
-              <Button 
-                variant="outline" 
-                className="gap-2"
-                onClick={() => {
-                  toast({
-                    title: "Feedback received",
-                    description: "Thank you for your feedback!",
-                  });
-                }}
-              >
-                <ThumbsUp className="h-4 w-4" />
-                I like these recommendations
-              </Button>
-            </div>
-          )}
+
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
+
 };
 
-export default MovieRecommendations;
-
-
-
-
+export default MovieRecommendation;
