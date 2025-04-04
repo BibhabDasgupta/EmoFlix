@@ -7,9 +7,9 @@ import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 
 const TMDB_API_KEY =
-  "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlZTJhYTBjODE1NTQzNzkxNjIyMmIxZmYyOWE3ZGI4NiIsIm5iZiI6MTc0MDkyODAzOS41MTIsInN1YiI6IjY3YzQ3NDI3MTExY2RkNGVkOGI0YWUyMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.nmjaNuIPThzM0BrtWckOXBERsIELOoWImWjXHQ9mxqA";
+  "YOUR_KEY";
 
-  const YOUTUBE_API_KEY = "AIzaSyARzpDJU617VFt8Kzqp9QLtxs1LxuDxFNE";
+  const YOUTUBE_API_KEY = "YOUR_KEY";
 
 const genreMappings: Record<string, string> = {
   "35": "happy", // Comedy
