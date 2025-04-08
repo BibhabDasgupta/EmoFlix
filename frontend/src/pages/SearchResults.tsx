@@ -1,52 +1,45 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Header, Footer } from "@/components";
-import { ArrowLeft, RefreshCcw, Bookmark } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, RefreshCcw } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+
 const TMDB_API_KEY =
   "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlZTJhYTBjODE1NTQzNzkxNjIyMmIxZmYyOWE3ZGI4NiIsIm5iZiI6MTc0MDkyODAzOS41MTIsInN1YiI6IjY3YzQ3NDI3MTExY2RkNGVkOGI0YWUyMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.nmjaNuIPThzM0BrtWckOXBERsIELOoWImWjXHQ9mxqA";
 
-  const YOUTUBE_API_KEY = "AIzaSyARzpDJU617VFt8Kzqp9QLtxs1LxuDxFNE";
+const YOUTUBE_API_KEY = "AIzaSyARzpDJU617VFt8Kzqp9QLtxs1LxuDxFNE";
 
-const genreMappings: Record<string, string> = {
-  "35": "happy", // Comedy
-  "18": "sad", // Drama
-  "28": "angry", // Action
-  "12": "surprised", // Adventure
-  "878": "neutral", // Romance
-  "9648": "fearful", // Mystery
-  "27": "disgusted", // Horror
-};
-
-const MovieRecommendation = () => {
+const SearchResults = () => {
   const navigate = useNavigate();
-  const { emotionId } = useParams();
-  const [movies, setMovies] = useState([]);
+  const location = useLocation();
+  const [movies, setMovies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
-  const [clickedMovies, setClickedMovies] = useState<number[]>([]);
 
-  const emotion = genreMappings[emotionId || ""];
+  // Get search query from URL parameters
+  const searchParams = new URLSearchParams(location.search);
+  const query = searchParams.get("query") || "";
 
   useEffect(() => {
-    if (!emotionId || !emotion) {
-      navigate("/");
-      return;
-    }
-
+    // Check if user is authenticated
     const token = localStorage.getItem("token");
     const oauthSession = sessionStorage.getItem("oauthSession");
-
+    
     if (!token && !oauthSession) {
       navigate("/");
       return;
     }
 
+    if (!query) {
+      navigate("/emotions");
+      return;
+    }
+
     fetchMovies();
-  }, [emotionId, navigate]);
+  }, [query, navigate]);
 
   const fetchMovies = async () => {
     setIsLoading(true);
@@ -54,7 +47,7 @@ const MovieRecommendation = () => {
 
     try {
       const response = await fetch(
-        `https://api.themoviedb.org/3/discover/movie?with_genres=${emotionId}`,
+        `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}`,
         {
           headers: {
             Authorization: `Bearer ${TMDB_API_KEY}`,
@@ -67,9 +60,9 @@ const MovieRecommendation = () => {
 
       const data = await response.json();
       if (data.results?.length > 0) {
-        setMovies(data.results); // Limit to 5 movies
+        setMovies(data.results);
       } else {
-        setError("No movies found for this emotion.");
+        setError("No movies found for this search.");
       }
     } catch (error) {
       setError(`Failed to fetch movies: ${error.message}`);
@@ -77,69 +70,20 @@ const MovieRecommendation = () => {
       setIsLoading(false);
     }
   };
-  useEffect(() => {
-    fetchMovies();
-  }, []);
-
-
 
   const handleRefresh = () => {
     fetchMovies();
     toast({
-      title: "Recommendations refreshed",
-      description: "Here are some new movie suggestions based on your mood.",
+      title: "Search refreshed",
+      description: "Updated search results for your query.",
     });
-  };
-
-  const handleSaveToHistory = async () => {
-    if (!emotion || clickedMovies.length === 0) return;
-    
-    try {
-      const userEmail = localStorage.getItem('userEmail');
-      const selectedMovies = movies.filter(movie => clickedMovies.includes(movie.id));
-      
-      const response = await fetch('http://localhost:3000/api/auth/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: userEmail,
-          history: {
-            emotion,
-            movies: selectedMovies.map(movie => ({
-              id: movie.id,
-              title: movie.title,
-              poster_path: movie.poster_path,
-              vote_average: movie.vote_average,
-              overview: movie.overview,
-              release_date: movie.release_date
-            }))
-          }
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to save history');
-      
-      toast({
-        title: "Saved to history",
-        description: "These recommendations have been saved to your history.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
   };
 
   const toggleReadMore = (id: number) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+
   const handleMovieClick = async (movieId: number) => {
-    if (!clickedMovies.includes(movieId)) {
-      
-      setClickedMovies([...clickedMovies, movieId]);
-    }
     try {
       const response = await fetch(
         `https://api.themoviedb.org/3/movie/${movieId}/videos`,
@@ -305,7 +249,7 @@ const MovieRecommendation = () => {
         </p>
         <div className="mt-auto flex justify-between items-center">
           <span className="text-sm text-yellow-500 font-medium">
-            ⭐ {movie.vote_average.toFixed(1)}
+            ⭐ {movie.vote_average ? movie.vote_average.toFixed(1) : "N/A"}
           </span>
           <span className="text-xs text-muted-foreground">
             {movie.release_date ? new Date(movie.release_date).getFullYear() : "N/A"}
@@ -315,9 +259,6 @@ const MovieRecommendation = () => {
     </Card>
   );
 
-  
-
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -326,18 +267,19 @@ const MovieRecommendation = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-12 animate-slide-down">
             <div>
-              <Link
-                to="/emotions"
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/emotions")}
                 className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
               >
                 <ArrowLeft className="mr-1 h-4 w-4" />
-                Back to Emotion detection
-              </Link>
+                Back to Home
+              </Button>
               <h1 className="text-3xl md:text-4xl font-bold">
-              {`Movies for when you're feeling ${emotion}`}
+                Search Results for "{query}"
               </h1>
               <p className="text-muted-foreground mt-2">
-                Discover great movies from our collection.
+                Movies matching your search query
               </p>
             </div>
 
@@ -350,10 +292,6 @@ const MovieRecommendation = () => {
               >
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
-              </Button>
-              <Button className="gap-2" onClick={handleSaveToHistory}>
-                <Bookmark className="h-4 w-4" />
-                Save to history
               </Button>
             </div>
           </div>
@@ -383,14 +321,12 @@ const MovieRecommendation = () => {
               ))}
             </div>
           )}
-
         </div>
       </main>
 
       <Footer />
     </div>
   );
-
 };
 
-export default MovieRecommendation;
+export default SearchResults;

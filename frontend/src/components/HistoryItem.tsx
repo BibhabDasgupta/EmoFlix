@@ -15,7 +15,7 @@ const TMDB_API_KEY =
 interface HistoryItemProps {
   history: {
     _id: string;
-    emotion: string;
+    emotion: string; // For recommendation history: emotion, for search history: query
     movies: Array<{
       id: number;
       title: string;
@@ -47,7 +47,10 @@ const HistoryItem = ({ history }: HistoryItemProps) => {
     minute: "2-digit",
   });
 
-  const emotion = EMOTIONS[history.emotion];
+  // Determine if this is a search history item (no movies) or recommendation history
+  const isSearchHistory = history.movies.length === 0;
+  const displayLabel = isSearchHistory ? "Search Query" : history.emotion;
+  const emotion = isSearchHistory ? null : EMOTIONS[history.emotion];
 
   const handleMovieClick = async (movieId: number) => {
     try {
@@ -102,8 +105,12 @@ const HistoryItem = ({ history }: HistoryItemProps) => {
       <AccordionItem value={history._id} className="border-none">
         <AccordionTrigger className="py-5 px-6 hover:no-underline">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-left">
-            <Badge className={`bg-gradient-to-r ${emotion.color} hover:${emotion.color}`}>
-              {history.emotion}
+            <Badge
+              className={`bg-gradient-to-r ${
+                isSearchHistory ? "from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800" : emotion?.color
+              } hover:${isSearchHistory ? "from-blue-600 hover:to-blue-800" : emotion?.color}`}
+            >
+              {isSearchHistory ? displayLabel : history.emotion}
             </Badge>
             <div className="flex flex-col sm:flex-row gap-1 sm:gap-6">
               <div className="flex items-center text-sm text-muted-foreground">
@@ -118,27 +125,36 @@ const HistoryItem = ({ history }: HistoryItemProps) => {
           </div>
         </AccordionTrigger>
         <AccordionContent className="pb-6 px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
-            {history.movies.map((movie) => (
-              <div
-                key={movie.id}
-                className="border rounded-lg p-3 cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => handleMovieClick(movie.id)}
-              >
-                {movie.poster_path && (
-                  <img
-                    src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
-                    alt={movie.title}
-                    className="w-full h-40 object-cover rounded mb-2"
-                  />
-                )}
-                <h3 className="font-medium">{movie.title}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {movie.release_date?.substring(0, 4)} • ⭐ {movie.vote_average?.toFixed(1)}
-                </p>
-              </div>
-            ))}
-          </div>
+          {isSearchHistory ? (
+            <div className="mt-2">
+              <p className="text-sm text-muted-foreground">
+                Searched for: <span className="font-medium">{history.emotion}</span>
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
+              {history.movies.map((movie) => (
+                <div
+                  key={movie.id}
+                  className="border rounded-lg p-3 cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => handleMovieClick(movie.id)}
+                >
+                  {movie.poster_path && (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
+                      alt={movie.title}
+                      className="w-full h-40 object-cover rounded mb-2"
+                    />
+                  )}
+                  <h3 className="font-medium">{movie.title}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {movie.release_date?.substring(0, 4)} • ⭐{" "}
+                    {movie.vote_average?.toFixed(1)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </AccordionContent>
       </AccordionItem>
     </Accordion>

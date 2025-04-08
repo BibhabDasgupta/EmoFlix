@@ -12,6 +12,8 @@ import MovieRecommendations from "./pages/MovieRecommendations";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Explore from "./pages/Explore";
+import SearchResults from "./pages/SearchResults";
+import GuestSearchResults from "./pages/GuestSearchResults";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +27,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/search" element={<SearchResults />} />
+            <Route path="/guest-search" element={<GuestSearchResults />} />
             <Route path="/emotions" element={<EmotionDetection />} />
             <Route path="/recommendations/:emotionId" element={<MovieRecommendations />} />
             <Route path="/dashboard" element={<Dashboard />} />

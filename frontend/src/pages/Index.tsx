@@ -40,6 +40,7 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       {/* Background YouTube Video */}
+      
       <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
         <iframe
           className="absolute top-0 left-0 w-full h-full object-cover opacity-90 blur-lg"
