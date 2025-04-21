@@ -24,16 +24,17 @@ interface HistoryItemProps {
       overview: string;
       release_date: string;
     }>;
-    date: string;
+    timestamp: string;
   };
 }
 
 const HistoryItem = ({ history }: HistoryItemProps) => {
-  let date = new Date(history.date);
-  console.log("Parsed date:", date);
+  console.log(history);
+  const date = new Date(history.timestamp);
+  
+  // If the date is invalid, log a warning but still use the original date
   if (isNaN(date.getTime())) {
-    date = new Date();
-    console.warn("Invalid date received, using fallback:", history.date);
+    console.warn("Invalid date received:", history.timestamp);
   }
 
   const formattedDate = date.toLocaleDateString("en-US", {

@@ -5,10 +5,12 @@ import { Header, Footer } from "@/components";
 import { ArrowLeft, RefreshCcw, Bookmark } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 const TMDB_API_KEY =
   "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlZTJhYTBjODE1NTQzNzkxNjIyMmIxZmYyOWE3ZGI4NiIsIm5iZiI6MTc0MDkyODAzOS41MTIsInN1YiI6IjY3YzQ3NDI3MTExY2RkNGVkOGI0YWUyMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.nmjaNuIPThzM0BrtWckOXBERsIELOoWImWjXHQ9mxqA";
 
   const YOUTUBE_API_KEY = "AIzaSyARzpDJU617VFt8Kzqp9QLtxs1LxuDxFNE";
+  const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w45";
 
 const genreMappings: Record<string, string> = {
   "35": "happy", // Comedy
@@ -54,7 +56,7 @@ const MovieRecommendation = () => {
 
     try {
       const response = await fetch(
-        `https://api.themoviedb.org/3/discover/movie?with_genres=${emotionId}`,
+        `https://api.themoviedb.org/3/discover/movie?with_genres=${emotionId}&watch_region=US`,
         {
           headers: {
             Authorization: `Bearer ${TMDB_API_KEY}`,
@@ -67,7 +69,26 @@ const MovieRecommendation = () => {
 
       const data = await response.json();
       if (data.results?.length > 0) {
-        setMovies(data.results); // Limit to 5 movies
+        const moviesWithProviders = await Promise.all(
+          data.results.map(async (movie) => {
+            const providerResponse = await fetch(
+              `https://api.themoviedb.org/3/movie/${movie.id}/watch/providers`,
+              {
+                headers: {
+                  Authorization: `Bearer ${TMDB_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            
+            const providerData = await providerResponse.json();
+            return {
+              ...movie,
+              watchProviders: providerData.results?.US // Adjust country code as needed
+            };
+          })
+        );
+        setMovies(moviesWithProviders); // Limit to 5 movies
       } else {
         setError("No movies found for this emotion.");
       }
@@ -303,6 +324,26 @@ const MovieRecommendation = () => {
             </button>
           )}
         </p>
+        {movie.watchProviders?.flatrate && (
+          <div className="mb-4">
+            <p className="text-xs text-muted-foreground font-medium mb-1">Available on:</p>
+            <div className="flex flex-wrap gap-2">
+              {movie.watchProviders.flatrate.length > 0 ? (
+                movie.watchProviders.flatrate.map((provider) => (
+                  <img
+                    key={provider.provider_name}
+                    src={`${TMDB_IMAGE_BASE_URL}${provider.logo_path}`}
+                    alt={provider.provider_name}
+                    title={provider.provider_name} // Tooltip on hover
+                    className="h-6 w-6 object-contain rounded"
+                  />
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">Not available</span>
+              )}
+            </div>
+          </div>
+        )}
         <div className="mt-auto flex justify-between items-center">
           <span className="text-sm text-yellow-500 font-medium">
             ⭐ {movie.vote_average.toFixed(1)}

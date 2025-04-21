@@ -21,7 +21,7 @@ interface HistoryItem {
     overview: string;
     release_date: string;
   }>;
-  date: string;
+  timestamp: string;
 }
 
 
@@ -197,7 +197,7 @@ const Dashboard = () => {
                         _id: item._id,
                         emotion: item.emotion,
                         movies: item.movies,
-                        date: item.date
+                        timestamp: item.timestamp,
                       }} />
                       <Button
                         variant="ghost"

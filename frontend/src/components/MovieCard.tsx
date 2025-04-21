@@ -5,8 +5,19 @@ import { Badge } from "@/components/ui/badge";
 import { Movie } from "@/lib/types";
 import { Star, MoreHorizontal, Calendar } from "lucide-react";
 
+const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w45";
+
+
+
 interface MovieCardProps {
-  movie: Movie;
+  movie: Movie & {
+    id: number;
+    watchProviders?: {
+      flatrate?: Array<{ provider_name: string; logo_path: string }>;
+      // rent?: Array<{ provider_name: string; logo_path: string }>;
+      // buy?: Array<{ provider_name: string; logo_path: string }>;
+    };
+  };
 }
 
 const MovieCard = ({ movie }: MovieCardProps) => {
@@ -58,6 +69,26 @@ const MovieCard = ({ movie }: MovieCardProps) => {
         }`}>
           {movie.plot}
         </p>
+        {movie.watchProviders?.flatrate && (
+          <div className="mt-3">
+            <p className="text-xs text-muted-foreground font-medium mb-1">Available on:</p>
+            <div className="flex flex-wrap gap-2">
+              {movie.watchProviders.flatrate.length > 0 ? (
+                movie.watchProviders.flatrate.map((provider) => (
+                  <img
+                    key={provider.provider_name}
+                    src={`${TMDB_IMAGE_BASE_URL}${provider.logo_path}`}
+                    alt={provider.provider_name}
+                    title={provider.provider_name} // Tooltip on hover
+                    className="h-6 w-6 object-contain rounded"
+                  />
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">Not available</span>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
       
       <CardFooter className="p-4 pt-0">
